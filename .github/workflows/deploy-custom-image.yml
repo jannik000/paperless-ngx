@@ -1,15 +1,15 @@
 name: Build Custom Image
 # Builds and pushes ghcr.io/<owner>/paperless-ngx images for the personal
-# `custom` branch of this fork. Deliberately separate from upstream's
-# ci-docker.yml (multi-arch, external registries) to avoid merge conflicts
-# on every rebase onto upstream/dev and to keep this simple for a
-# single-NAS personal deployment.
+# `custom` branch of this fork (rebased on stable upstream/main releases,
+# not upstream/dev). Deliberately separate from upstream's ci-docker.yml
+# (multi-arch, external registries) to avoid merge conflicts on every
+# rebase and to keep this simple for a single-NAS personal deployment.
 on:
   push:
     branches:
       - custom
     tags:
-      - 'custom-*'
+      - 'v*-custom.*'
   workflow_dispatch:
 concurrency:
   group: deploy-custom-image-${{ github.ref }}
@@ -39,7 +39,7 @@ jobs:
           REPO: ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}
         run: |
           tags=""
-          if [[ "${GITHUB_REF}" == refs/tags/custom-* ]]; then
+          if [[ "${GITHUB_REF}" == refs/tags/v*-custom.* ]]; then
             tag_name="${GITHUB_REF#refs/tags/}"
             tags="${REPO}:${tag_name}"
           else
