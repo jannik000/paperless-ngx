@@ -39,11 +39,18 @@ export type DocumentBulkEditMethod =
   | 'modify_custom_fields'
   | 'set_permissions'
 
+export enum PageOrderingStrategy {
+  SEQUENTIAL = 'sequential',
+  ALTERNATING = 'alternating',
+  ALTERNATING_REVERSE_SECOND = 'alternating_reverse_second',
+}
+
 export interface MergeDocumentsRequest {
   metadata_document_id?: number
   delete_originals?: boolean
   archive_fallback?: boolean
   source_mode?: BulkEditSourceMode
+  page_ordering_strategy?: PageOrderingStrategy
 }
 
 export interface EditPdfOperation {

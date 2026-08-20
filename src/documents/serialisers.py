@@ -1680,6 +1680,15 @@ class MergeDocumentsSerializer(DocumentListSerializer, SourceModeValidationMixin
         required=False,
         default=bulk_edit.SourceModeChoices.LATEST_VERSION,
     )
+    page_ordering_strategy = serializers.ChoiceField(
+        choices=[
+            bulk_edit.PageOrderingStrategyChoices.SEQUENTIAL,
+            bulk_edit.PageOrderingStrategyChoices.ALTERNATING,
+            bulk_edit.PageOrderingStrategyChoices.ALTERNATING_REVERSE_SECOND,
+        ],
+        required=False,
+        default=bulk_edit.PageOrderingStrategyChoices.SEQUENTIAL,
+    )
     from_webui = serializers.BooleanField(required=False, default=False)
 
 
@@ -2098,6 +2107,18 @@ class BulkEditSerializer(
                 raise serializers.ValidationError("archive_fallback must be a boolean")
         else:
             parameters["archive_fallback"] = False
+        if "page_ordering_strategy" in parameters:
+            valid_strategies = {
+                bulk_edit.PageOrderingStrategyChoices.SEQUENTIAL,
+                bulk_edit.PageOrderingStrategyChoices.ALTERNATING,
+                bulk_edit.PageOrderingStrategyChoices.ALTERNATING_REVERSE_SECOND,
+            }
+            if parameters["page_ordering_strategy"] not in valid_strategies:
+                raise serializers.ValidationError("Invalid page_ordering_strategy")
+        else:
+            parameters["page_ordering_strategy"] = (
+                bulk_edit.PageOrderingStrategyChoices.SEQUENTIAL
+            )
 
     def _validate_parameters_edit_pdf(self, parameters, document_id) -> None:
         if "operations" not in parameters:

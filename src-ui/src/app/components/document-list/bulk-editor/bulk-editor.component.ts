@@ -41,6 +41,7 @@ import {
   DocumentSelectionQuery,
   DocumentService,
   MergeDocumentsRequest,
+  PageOrderingStrategy,
 } from 'src/app/services/rest/document.service'
 import { SavedViewService } from 'src/app/services/rest/saved-view.service'
 import { ShareLinkBundleService } from 'src/app/services/rest/share-link-bundle.service'
@@ -1000,6 +1001,11 @@ export class BulkEditorComponent
         }
         if (mergeDialog.archiveFallback()) {
           args.archive_fallback = true
+        }
+        if (
+          mergeDialog.pageOrderingStrategy() !== PageOrderingStrategy.SEQUENTIAL
+        ) {
+          args.page_ordering_strategy = mergeDialog.pageOrderingStrategy()
         }
         mergeDialog.buttonsEnabled.set(false)
         this.executeDocumentAction(

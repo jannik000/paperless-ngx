@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import tempfile
+from itertools import zip_longest
 from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Literal
@@ -52,6 +53,19 @@ SourceMode = Literal["latest_version", "explicit_selection"]
 class SourceModeChoices:
     LATEST_VERSION: SourceMode = "latest_version"
     EXPLICIT_SELECTION: SourceMode = "explicit_selection"
+
+
+PageOrderingStrategy = Literal[
+    "sequential",
+    "alternating",
+    "alternating_reverse_second",
+]
+
+
+class PageOrderingStrategyChoices:
+    SEQUENTIAL: PageOrderingStrategy = "sequential"
+    ALTERNATING: PageOrderingStrategy = "alternating"
+    ALTERNATING_REVERSE_SECOND: PageOrderingStrategy = "alternating_reverse_second"
 
 
 class ResolvedDocPair(NamedTuple):
@@ -522,9 +536,11 @@ def merge(
     source_mode: SourceMode = SourceModeChoices.LATEST_VERSION,
     user: User | None = None,
     trigger_source: PaperlessTask.TriggerSource = PaperlessTask.TriggerSource.WEB_UI,
+    page_ordering_strategy: PageOrderingStrategy = PageOrderingStrategyChoices.SEQUENTIAL,
 ) -> Literal["OK"]:
     logger.info(
-        f"Attempting to merge {len(doc_ids)} documents into a single document.",
+        f"Attempting to merge {len(doc_ids)} documents into a single document "
+        f"using page ordering strategy '{page_ordering_strategy}'.",
     )
     qs = Document.objects.select_related("root_document").filter(id__in=doc_ids)
     docs_by_id = {doc.id: doc for doc in qs}
@@ -534,30 +550,98 @@ def merge(
     merged_pdf = pikepdf.new()
     version: str = merged_pdf.pdf_version
     handoff_asn: int | None = None
-    # use doc_ids to preserve order
-    for doc_id in doc_ids:
-        doc = docs_by_id.get(doc_id)
-        if doc is None:
-            continue
-        pair = _resolve_root_and_source_doc(doc, source_mode=source_mode)
-        try:
-            doc_path = (
+
+    interleave = page_ordering_strategy in {
+        PageOrderingStrategyChoices.ALTERNATING,
+        PageOrderingStrategyChoices.ALTERNATING_REVERSE_SECOND,
+    }
+    if interleave and len(doc_ids) != 2:
+        logger.warning(
+            f"Page ordering strategy '{page_ordering_strategy}' requires exactly "
+            f"2 documents, got {len(doc_ids)}. Falling back to sequential merge.",
+        )
+        interleave = False
+
+    if interleave:
+        # Interleaving is intended for merging two single-sided scans of the
+        # same stack (e.g. odd pages scanned front-to-back, even pages
+        # scanned back-to-front on a duplex-incapable ADF scanner), so the
+        # second document's pages can optionally be reversed to line back up
+        # with the first.
+        doc1 = docs_by_id.get(doc_ids[0])
+        doc2 = docs_by_id.get(doc_ids[1])
+        if doc1 is None or doc2 is None:
+            logger.warning(
+                "One or both documents for the alternating merge could not be found",
+            )
+            return "OK"
+
+        pair1 = _resolve_root_and_source_doc(doc1, source_mode=source_mode)
+        pair2 = _resolve_root_and_source_doc(doc2, source_mode=source_mode)
+
+        def _doc_path(pair: ResolvedDocPair):
+            return (
                 pair.source_doc.archive_path
                 if archive_fallback
                 and pair.source_doc.mime_type != "application/pdf"
                 and pair.source_doc.has_archive_version
                 else pair.source_doc.source_path
             )
-            with pikepdf.open(str(doc_path)) as pdf:
-                version = max(version, pdf.pdf_version)
-                merged_pdf.pages.extend(pdf.pages)
-            affected_docs.append(doc.id)
-            if handoff_asn is None and doc.archive_serial_number is not None:
-                handoff_asn = doc.archive_serial_number
+
+        try:
+            with (
+                pikepdf.open(str(_doc_path(pair1))) as pdf1,
+                pikepdf.open(str(_doc_path(pair2))) as pdf2,
+            ):
+                version = max(version, pdf1.pdf_version, pdf2.pdf_version)
+                pages1 = list(pdf1.pages)
+                pages2 = list(pdf2.pages)
+                if (
+                    page_ordering_strategy
+                    == PageOrderingStrategyChoices.ALTERNATING_REVERSE_SECOND
+                ):
+                    pages2 = list(reversed(pages2))
+
+                for page1, page2 in zip_longest(pages1, pages2):
+                    if page1 is not None:
+                        merged_pdf.pages.append(page1)
+                    if page2 is not None:
+                        merged_pdf.pages.append(page2)
+
+                affected_docs.extend([doc1.id, doc2.id])
+                for doc in (doc1, doc2):
+                    if handoff_asn is None and doc.archive_serial_number is not None:
+                        handoff_asn = doc.archive_serial_number
         except Exception as e:
             logger.exception(
-                f"Error merging document {doc.id}, it will not be included in the merge: {e}",
+                f"Error merging documents with strategy '{page_ordering_strategy}': {e}",
             )
+            return "OK"
+    else:
+        # use doc_ids to preserve order
+        for doc_id in doc_ids:
+            doc = docs_by_id.get(doc_id)
+            if doc is None:
+                continue
+            pair = _resolve_root_and_source_doc(doc, source_mode=source_mode)
+            try:
+                doc_path = (
+                    pair.source_doc.archive_path
+                    if archive_fallback
+                    and pair.source_doc.mime_type != "application/pdf"
+                    and pair.source_doc.has_archive_version
+                    else pair.source_doc.source_path
+                )
+                with pikepdf.open(str(doc_path)) as pdf:
+                    version = max(version, pdf.pdf_version)
+                    merged_pdf.pages.extend(pdf.pages)
+                affected_docs.append(doc.id)
+                if handoff_asn is None and doc.archive_serial_number is not None:
+                    handoff_asn = doc.archive_serial_number
+            except Exception as e:
+                logger.exception(
+                    f"Error merging document {doc.id}, it will not be included in the merge: {e}",
+                )
     if len(affected_docs) == 0:
         logger.warning("No documents were merged")
         return "OK"

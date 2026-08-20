@@ -1,4 +1,5 @@
 import shutil
+import subprocess
 from datetime import date
 from pathlib import Path
 from unittest import mock
@@ -881,6 +882,107 @@ class TestPDFActions(DirectoriesMixin, TestCase):
             self.assertIn(expected_str, error_str)
 
         mock_consume_file.assert_not_called()
+
+    @staticmethod
+    def _extract_page_text(path: Path, page_num: int) -> str:
+        result = subprocess.run(
+            ["pdftotext", "-f", str(page_num), "-l", str(page_num), str(path), "-"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()
+
+    @mock.patch("documents.tasks.consume_file.s")
+    def test_merge_alternating(self, mock_consume_file) -> None:
+        """
+        GIVEN:
+            - Two existing documents (1 page and 3 pages)
+        WHEN:
+            - Merge action is called with page_ordering_strategy="alternating"
+        THEN:
+            - Pages of both documents are interleaved in order
+        """
+        doc_ids = [self.doc1.id, self.doc2.id]
+
+        result = bulk_edit.merge(doc_ids, page_ordering_strategy="alternating")
+        self.assertEqual(result, "OK")
+
+        mock_consume_file.assert_called()
+        merged_path = mock_consume_file.call_args.kwargs["input_doc"].original_file
+        with pikepdf.open(merged_path) as merged:
+            self.assertEqual(len(merged.pages), 4)
+
+        texts = [self._extract_page_text(merged_path, i) for i in range(1, 5)]
+        self.assertEqual(
+            texts,
+            [
+                "This is a test document.",
+                "This is a multi page document. Page 1.",
+                "This is a multi page document. Page 2.",
+                "This is a multi page document. Page 3.",
+            ],
+        )
+
+    @mock.patch("documents.tasks.consume_file.s")
+    def test_merge_alternating_reverse_second(self, mock_consume_file) -> None:
+        """
+        GIVEN:
+            - Two existing documents (1 page and 3 pages), e.g. front and
+              back sides scanned separately using a single-sided document
+              feeder
+        WHEN:
+            - Merge action is called with
+              page_ordering_strategy="alternating_reverse_second"
+        THEN:
+            - Pages of the second document are reversed before being
+              interleaved with the first
+        """
+        doc_ids = [self.doc1.id, self.doc2.id]
+
+        result = bulk_edit.merge(
+            doc_ids,
+            page_ordering_strategy="alternating_reverse_second",
+        )
+        self.assertEqual(result, "OK")
+
+        mock_consume_file.assert_called()
+        merged_path = mock_consume_file.call_args.kwargs["input_doc"].original_file
+        with pikepdf.open(merged_path) as merged:
+            self.assertEqual(len(merged.pages), 4)
+
+        texts = [self._extract_page_text(merged_path, i) for i in range(1, 5)]
+        self.assertEqual(
+            texts,
+            [
+                "This is a test document.",
+                "This is a multi page document. Page 3.",
+                "This is a multi page document. Page 2.",
+                "This is a multi page document. Page 1.",
+            ],
+        )
+
+    @mock.patch("documents.tasks.consume_file.s")
+    def test_merge_alternating_falls_back_to_sequential_for_more_than_two_docs(
+        self,
+        mock_consume_file,
+    ) -> None:
+        """
+        GIVEN:
+            - Three existing documents
+        WHEN:
+            - Merge action is called with page_ordering_strategy="alternating"
+        THEN:
+            - A warning is logged and the merge falls back to sequential order
+        """
+        doc_ids = [self.doc1.id, self.doc2.id, self.doc3.id]
+
+        with self.assertLogs("paperless.bulk_edit", level="WARNING") as cm:
+            result = bulk_edit.merge(doc_ids, page_ordering_strategy="alternating")
+            self.assertIn("Falling back to sequential merge", cm.output[0])
+
+        self.assertEqual(result, "OK")
+        mock_consume_file.assert_called()
 
     @mock.patch("documents.tasks.consume_file.s")
     def test_split(self, mock_consume_file) -> None:
