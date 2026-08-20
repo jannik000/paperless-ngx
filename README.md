@@ -1,3 +1,15 @@
+> **This is a personal fork of [paperless-ngx/paperless-ngx](https://github.com/paperless-ngx/paperless-ngx).**
+> The `custom` branch (this one) tracks stable upstream releases only (rebased
+> onto `main`, never the unreleased `dev` branch) with one patch on top:
+>
+> - **Document merge: page ordering strategies** — the merge action can now
+>   interleave pages from two documents (with optional reversal of the
+>   second) instead of only appending them sequentially, for workflows where
+>   a duplex document was scanned as two single-sided passes on an
+>   ADF-only scanner.
+>
+> See `.github/workflows/deploy-custom-image.yml` for how images are built.
+
 [![ci](https://github.com/paperless-ngx/paperless-ngx/workflows/ci/badge.svg)](https://github.com/paperless-ngx/paperless-ngx/actions)
 [![Crowdin](https://badges.crowdin.net/paperless-ngx/localized.svg)](https://crowdin.com/project/paperless-ngx)
 [![Documentation Status](https://img.shields.io/github/deployments/paperless-ngx/paperless-ngx/github-pages?label=docs)](https://docs.paperless-ngx.com)
