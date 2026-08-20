@@ -39,6 +39,7 @@ import {
   SystemStatus,
   SystemStatusItemStatus,
 } from 'src/app/data/system-status'
+import { PageOrderingStrategy } from 'src/app/data/page-ordering-strategy'
 import { GlobalSearchType, SETTINGS_KEYS } from 'src/app/data/ui-settings'
 import { User } from 'src/app/data/user'
 import { IfPermissionsDirective } from 'src/app/directives/if-permissions.directive'
@@ -166,6 +167,7 @@ export class SettingsComponent
     useNativePdfViewer: new FormControl(null),
     pdfViewerDefaultZoom: new FormControl(null),
     pdfEditorDefaultEditMode: new FormControl(null),
+    mergeDefaultPageOrderingStrategy: new FormControl(null),
     documentEditingRemoveInboxTags: new FormControl(null),
     documentEditingOverlayThumbnail: new FormControl(null),
     documentDetailsHiddenFields: new FormControl([]),
@@ -200,6 +202,8 @@ export class SettingsComponent
   public readonly PdfZoomScale = PdfZoomScale
 
   public readonly PdfEditorEditMode = PdfEditorEditMode
+
+  public readonly PageOrderingStrategy = PageOrderingStrategy
 
   public readonly documentDetailFieldOptions = documentDetailFieldOptions
 
@@ -323,6 +327,9 @@ export class SettingsComponent
       ),
       pdfEditorDefaultEditMode: this.settings.get(
         SETTINGS_KEYS.PDF_EDITOR_DEFAULT_EDIT_MODE
+      ),
+      mergeDefaultPageOrderingStrategy: this.settings.get(
+        SETTINGS_KEYS.MERGE_DEFAULT_PAGE_ORDERING_STRATEGY
       ),
       displayLanguage: this.settings.getLanguage(),
       dateLocale: this.settings.get(SETTINGS_KEYS.DATE_LOCALE),
@@ -496,6 +503,10 @@ export class SettingsComponent
     this.settings.set(
       SETTINGS_KEYS.PDF_EDITOR_DEFAULT_EDIT_MODE,
       this.settingsForm.value.pdfEditorDefaultEditMode
+    )
+    this.settings.set(
+      SETTINGS_KEYS.MERGE_DEFAULT_PAGE_ORDERING_STRATEGY,
+      this.settingsForm.value.mergeDefaultPageOrderingStrategy
     )
     this.settings.set(
       SETTINGS_KEYS.DATE_LOCALE,

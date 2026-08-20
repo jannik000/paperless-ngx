@@ -12743,6 +12743,67 @@
           <context context-type="linenumber">467</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="8743669154201494335" datatype="html">
+        <source>Document merge</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/admin/settings/settings.component.html</context>
+          <context context-type="linenumber">287</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="7185337322085920576" datatype="html">
+        <source>Default page order</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/admin/settings/settings.component.html</context>
+          <context context-type="linenumber">290</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="4584977442104287430" datatype="html">
+        <source>Sequential (documents merged one after another)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/admin/settings/settings.component.html</context>
+          <context context-type="linenumber">294</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/common/confirm-dialog/merge-confirm-dialog/merge-confirm-dialog.component.html</context>
+          <context context-type="linenumber">50</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="6546294371814548153" datatype="html">
+        <source>Alternate pages (interleave pages of both documents)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/admin/settings/settings.component.html</context>
+          <context context-type="linenumber">295</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/common/confirm-dialog/merge-confirm-dialog/merge-confirm-dialog.component.html</context>
+          <context context-type="linenumber">51</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="3096385584628942349" datatype="html">
+        <source>Alternate pages, second document reversed (duplex scan from two single-sided passes)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/admin/settings/settings.component.html</context>
+          <context context-type="linenumber">296</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/common/confirm-dialog/merge-confirm-dialog/merge-confirm-dialog.component.html</context>
+          <context context-type="linenumber">52</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="4910385719094902680" datatype="html">
+        <source>Page order:</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/common/confirm-dialog/merge-confirm-dialog/merge-confirm-dialog.component.html</context>
+          <context context-type="linenumber">48</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="5056128205991531722" datatype="html">
+        <source>Useful for scanning double-sided pages with a single-sided document feeder: scan the fronts into the first document, flip the stack and scan the backs into the second document, then merge.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/common/confirm-dialog/merge-confirm-dialog/merge-confirm-dialog.component.html</context>
+          <context context-type="linenumber">55</context>
+        </context-group>
+      </trans-unit>
     </body>
   </file>
 </xliff>

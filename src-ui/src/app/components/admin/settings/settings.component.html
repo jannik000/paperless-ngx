@@ -284,6 +284,20 @@
               </div>
             </div>
 
+            <h5 class="mt-3" i18n>Document merge</h5>
+            <div class="row">
+              <div class="col-md-3 col-form-label pt-0">
+                <label for="mergeDefaultPageOrderingStrategy" i18n>Default page order</label>
+              </div>
+              <div class="col">
+                <select id="mergeDefaultPageOrderingStrategy" class="form-select" formControlName="mergeDefaultPageOrderingStrategy">
+                  <option [ngValue]="PageOrderingStrategy.SEQUENTIAL" i18n>Sequential (documents merged one after another)</option>
+                  <option [ngValue]="PageOrderingStrategy.ALTERNATING" i18n>Alternate pages (interleave pages of both documents)</option>
+                  <option [ngValue]="PageOrderingStrategy.ALTERNATING_REVERSE_SECOND" i18n>Alternate pages, second document reversed (duplex scan from two single-sided passes)</option>
+                </select>
+              </div>
+            </div>
+
             <h5 class="mt-3" i18n>Notes</h5>
             <div class="row mb-3">
               <div class="col">
