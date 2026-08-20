@@ -1,0 +1,52 @@
+# Test-Stack fuer die Dev-VM. Komplett isoliert von der Synology-NAS-
+# Produktivinstanz: eigene Volumes, eigener Port. Tracks das floating
+# `custom` Tag, damit `docker compose pull && docker compose up -d` immer
+# den letzten Build vom `custom` Branch holt.
+#
+# Nutzung:
+#   cd deploy/dev-vm
+#   cp .env.example .env   # einmalig, Werte anpassen
+#   docker compose pull
+#   docker compose up -d
+services:
+  broker:
+    image: docker.io/valkey/valkey:9-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+  db:
+    image: docker.io/library/postgres:18
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: paperless
+  webserver:
+    image: ghcr.io/jannik000/paperless-ngx:custom
+    restart: unless-stopped
+    depends_on:
+      - db
+      - broker
+    ports:
+      - "18000:8000"
+    volumes:
+      - data:/usr/src/paperless/data
+      - media:/usr/src/paperless/media
+      - ./export:/usr/src/paperless/export
+      - ./consume:/usr/src/paperless/consume
+    env_file: .env
+    environment:
+      PAPERLESS_REDIS: redis://broker:6379
+      PAPERLESS_DBHOST: db
+      PAPERLESS_DBENGINE: postgresql
+volumes:
+  data:
+    name: pngx_custom_data
+  media:
+    name: pngx_custom_media
+  pgdata:
+    name: pngx_custom_pgdata
+  redisdata:
+    name: pngx_custom_redisdata
