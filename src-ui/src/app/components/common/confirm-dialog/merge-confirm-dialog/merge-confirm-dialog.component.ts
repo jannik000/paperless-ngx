@@ -12,7 +12,10 @@ import { Document } from 'src/app/data/document'
 import { CorrespondentNamePipe } from 'src/app/pipes/correspondent-name.pipe'
 import { CustomDatePipe } from 'src/app/pipes/custom-date.pipe'
 import { PermissionsService } from 'src/app/services/permissions.service'
-import { DocumentService } from 'src/app/services/rest/document.service'
+import {
+  DocumentService,
+  PageOrderingStrategy,
+} from 'src/app/services/rest/document.service'
 import { ConfirmDialogComponent } from '../confirm-dialog.component'
 
 @Component({
@@ -36,11 +39,16 @@ export class MergeConfirmDialogComponent
   private documentService = inject(DocumentService)
   private permissionService = inject(PermissionsService)
 
+  readonly PageOrderingStrategy = PageOrderingStrategy
+
   readonly documentIDs = signal<number[]>([])
   readonly archiveFallback = signal(false)
   readonly deleteOriginals = signal(false)
   readonly documents = signal<Document[]>([])
   readonly metadataDocumentID = signal(-1)
+  readonly pageOrderingStrategy = signal<PageOrderingStrategy>(
+    PageOrderingStrategy.SEQUENTIAL
+  )
 
   constructor() {
     super()
@@ -69,5 +77,9 @@ export class MergeConfirmDialogComponent
     return this.documents().every((d) =>
       this.permissionService.currentUserOwnsObject(d)
     )
+  }
+
+  get supportsPageOrderingStrategy(): boolean {
+    return this.documentIDs().length === 2
   }
 }

@@ -84,4 +84,12 @@ describe('MergeConfirmDialogComponent', () => {
 
     expect(component.getDocument(2)).toEqual({ id: 2, name: 'Document 2' })
   })
+
+  it('should only support page ordering strategy with exactly 2 documents', () => {
+    component.documentIDs.set([1, 2, 3])
+    expect(component.supportsPageOrderingStrategy).toBeFalsy()
+
+    component.documentIDs.set([1, 2])
+    expect(component.supportsPageOrderingStrategy).toBeTruthy()
+  })
 })

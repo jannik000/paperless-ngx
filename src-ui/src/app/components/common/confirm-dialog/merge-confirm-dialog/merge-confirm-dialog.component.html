@@ -43,6 +43,19 @@
             }
         </select>
     </div>
+    @if (supportsPageOrderingStrategy) {
+      <div class="form-group mt-4">
+        <label class="form-label" for="pageOrderingStrategy" i18n>Page order:</label>
+        <select id="pageOrderingStrategy" class="form-select" [ngModel]="pageOrderingStrategy()" (ngModelChange)="pageOrderingStrategy.set($event)">
+          <option [ngValue]="PageOrderingStrategy.SEQUENTIAL" i18n>Sequential (documents merged one after another)</option>
+          <option [ngValue]="PageOrderingStrategy.ALTERNATING" i18n>Alternate pages (interleave pages of both documents)</option>
+          <option [ngValue]="PageOrderingStrategy.ALTERNATING_REVERSE_SECOND" i18n>Alternate pages, second document reversed (duplex scan from two single-sided passes)</option>
+        </select>
+        @if (pageOrderingStrategy() !== PageOrderingStrategy.SEQUENTIAL) {
+          <p class="small text-muted fst-italic mt-2" i18n>Useful for scanning double-sided pages with a single-sided document feeder: scan the fronts into the first document, flip the stack and scan the backs into the second document, then merge.</p>
+        }
+      </div>
+    }
     <div class="form-check form-switch mt-4">
       <input class="form-check-input" type="checkbox" role="switch" id="archiveFallbackSwitch" [ngModel]="archiveFallback()" (ngModelChange)="archiveFallback.set($event)">
       <label class="form-check-label" for="archiveFallbackSwitch" i18n>Try to include archive version in merge for non-PDF files</label>
