@@ -1,6 +1,7 @@
 import { PdfEditorEditMode } from '../components/common/pdf-editor/pdf-editor-edit-mode'
 import { PdfZoomScale } from '../components/common/pdf-viewer/pdf-viewer.types'
 import { RemoteOCRModeConfig } from './paperless-config'
+import { PageOrderingStrategy } from './page-ordering-strategy'
 import { User } from './user'
 
 export interface UiSettings {
@@ -112,6 +113,8 @@ export const SETTINGS_KEYS = {
   SEARCH_FULL_TYPE: 'general-settings:search:more-link',
   PDF_EDITOR_DEFAULT_EDIT_MODE:
     'general-settings:document-editing:default-edit-mode',
+  MERGE_DEFAULT_PAGE_ORDERING_STRATEGY:
+    'general-settings:document-merge:default-page-ordering-strategy',
   EMPTY_TRASH_DELAY: 'trash_delay',
   GMAIL_OAUTH_URL: 'gmail_oauth_url',
   OUTLOOK_OAUTH_URL: 'outlook_oauth_url',
@@ -398,5 +401,10 @@ export const SETTINGS: UiSetting[] = [
     key: SETTINGS_KEYS.REMOTE_OCR_MODE,
     type: 'string',
     default: RemoteOCRModeConfig.ALWAYS,
+  },
+  {
+    key: SETTINGS_KEYS.MERGE_DEFAULT_PAGE_ORDERING_STRATEGY,
+    type: 'string',
+    default: PageOrderingStrategy.SEQUENTIAL,
   },
 ]

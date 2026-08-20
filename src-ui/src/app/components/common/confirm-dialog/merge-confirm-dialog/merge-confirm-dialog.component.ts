@@ -9,6 +9,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NgxBootstrapIconsModule } from 'ngx-bootstrap-icons'
 import { takeUntil } from 'rxjs'
 import { Document } from 'src/app/data/document'
+import { SETTINGS_KEYS } from 'src/app/data/ui-settings'
 import { CorrespondentNamePipe } from 'src/app/pipes/correspondent-name.pipe'
 import { CustomDatePipe } from 'src/app/pipes/custom-date.pipe'
 import { PermissionsService } from 'src/app/services/permissions.service'
@@ -16,6 +17,7 @@ import {
   DocumentService,
   PageOrderingStrategy,
 } from 'src/app/services/rest/document.service'
+import { SettingsService } from 'src/app/services/settings.service'
 import { ConfirmDialogComponent } from '../confirm-dialog.component'
 
 @Component({
@@ -38,6 +40,7 @@ export class MergeConfirmDialogComponent
 {
   private documentService = inject(DocumentService)
   private permissionService = inject(PermissionsService)
+  private settingsService = inject(SettingsService)
 
   readonly PageOrderingStrategy = PageOrderingStrategy
 
@@ -47,7 +50,7 @@ export class MergeConfirmDialogComponent
   readonly documents = signal<Document[]>([])
   readonly metadataDocumentID = signal(-1)
   readonly pageOrderingStrategy = signal<PageOrderingStrategy>(
-    PageOrderingStrategy.SEQUENTIAL
+    this.settingsService.get(SETTINGS_KEYS.MERGE_DEFAULT_PAGE_ORDERING_STRATEGY)
   )
 
   constructor() {
