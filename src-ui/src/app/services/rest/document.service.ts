@@ -12,6 +12,7 @@ import {
 import { DocumentMetadata } from 'src/app/data/document-metadata'
 import { DocumentSuggestions } from 'src/app/data/document-suggestions'
 import { FilterRule } from 'src/app/data/filter-rule'
+import { PageOrderingStrategy } from 'src/app/data/page-ordering-strategy'
 import { Results, SelectionData } from 'src/app/data/results'
 import { SETTINGS_KEYS } from 'src/app/data/ui-settings'
 import { queryParamsFromFilterRules } from '../../utils/query-params'
@@ -39,11 +40,7 @@ export type DocumentBulkEditMethod =
   | 'modify_custom_fields'
   | 'set_permissions'
 
-export enum PageOrderingStrategy {
-  SEQUENTIAL = 'sequential',
-  ALTERNATING = 'alternating',
-  ALTERNATING_REVERSE_SECOND = 'alternating_reverse_second',
-}
+export { PageOrderingStrategy }
 
 export interface MergeDocumentsRequest {
   metadata_document_id?: number
