@@ -201,6 +201,33 @@ class PdfMerger:
             self._version = max(self._version, pdf.pdf_version)
             self._pdf.pages.extend(pdf.pages)
 
+    def add_interleaved(
+        self,
+        first: Path,
+        second: Path,
+        *,
+        reverse_second: bool = False,
+    ) -> None:
+        """
+        Append the pages of two PDFs alternately (first[0], second[0], ...).
+        Leftover pages of the longer PDF are appended at the end. With
+        ``reverse_second`` the second PDF's pages are taken last-to-first.
+        """
+        from itertools import zip_longest
+
+        import pikepdf
+
+        with pikepdf.open(str(first)) as pdf1, pikepdf.open(str(second)) as pdf2:
+            self._version = max(self._version, pdf1.pdf_version, pdf2.pdf_version)
+            pages2 = list(pdf2.pages)
+            if reverse_second:
+                pages2.reverse()
+            for page1, page2 in zip_longest(list(pdf1.pages), pages2):
+                if page1 is not None:
+                    self._pdf.pages.append(page1)
+                if page2 is not None:
+                    self._pdf.pages.append(page2)
+
     def save(self, dst: Path) -> None:
         self._pdf.remove_unreferenced_resources()
         self._pdf.save(dst, min_version=self._version)

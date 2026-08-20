@@ -65,6 +65,19 @@ class SourceModeChoices:
     EXPLICIT_SELECTION: SourceMode = "explicit_selection"
 
 
+PageOrderingStrategy = Literal[
+    "sequential",
+    "alternating",
+    "alternating_reverse_second",
+]
+
+
+class PageOrderingStrategyChoices:
+    SEQUENTIAL: PageOrderingStrategy = "sequential"
+    ALTERNATING: PageOrderingStrategy = "alternating"
+    ALTERNATING_REVERSE_SECOND: PageOrderingStrategy = "alternating_reverse_second"
+
+
 class ResolvedDocPair(NamedTuple):
     root_doc: Document
     source_doc: Document
@@ -555,41 +568,88 @@ def merge(
     source_mode: SourceMode = SourceModeChoices.LATEST_VERSION,
     user: User | None = None,
     trigger_source: PaperlessTask.TriggerSource = PaperlessTask.TriggerSource.WEB_UI,
+    page_ordering_strategy: PageOrderingStrategy = PageOrderingStrategyChoices.SEQUENTIAL,
 ) -> Literal["OK"]:
     logger.info(
-        f"Attempting to merge {len(doc_ids)} documents into a single document.",
+        f"Attempting to merge {len(doc_ids)} documents into a single document "
+        f"using page ordering strategy '{page_ordering_strategy}'.",
     )
     qs = Document.objects.select_related("root_document").filter(id__in=doc_ids)
     docs_by_id = {doc.id: doc for doc in qs}
     affected_docs: list[int] = []
     handoff_asn: int | None = None
+
+    def _merge_source_path(pair: ResolvedDocPair) -> Path:
+        # archive_path is None when there is no archive version
+        archive_path = (
+            pair.source_doc.archive_path
+            if archive_fallback and pair.source_doc.mime_type != "application/pdf"
+            else None
+        )
+        return archive_path if archive_path is not None else pair.source_doc.source_path
+
+    interleave = page_ordering_strategy in {
+        PageOrderingStrategyChoices.ALTERNATING,
+        PageOrderingStrategyChoices.ALTERNATING_REVERSE_SECOND,
+    }
+    if interleave and len(doc_ids) != 2:
+        logger.warning(
+            f"Page ordering strategy '{page_ordering_strategy}' requires exactly "
+            f"2 documents, got {len(doc_ids)}. Falling back to sequential merge.",
+        )
+        interleave = False
+
     with pdf_ops.PdfMerger() as merger:
-        # use doc_ids to preserve order
-        for doc_id in doc_ids:
-            doc = docs_by_id.get(doc_id)
-            if doc is None:
-                continue
-            pair = _resolve_root_and_source_doc(doc, source_mode=source_mode)
+        if interleave:
+            # Interleaving is intended for merging two single-sided scans of the
+            # same stack (e.g. odd pages scanned front-to-back, even pages
+            # scanned back-to-front on a duplex-incapable ADF scanner), so the
+            # second document's pages can optionally be reversed to line back up
+            # with the first.
+            doc1 = docs_by_id.get(doc_ids[0])
+            doc2 = docs_by_id.get(doc_ids[1])
+            if doc1 is None or doc2 is None:
+                logger.warning(
+                    "One or both documents for the alternating merge could not be found",
+                )
+                return "OK"
+
+            pair1 = _resolve_root_and_source_doc(doc1, source_mode=source_mode)
+            pair2 = _resolve_root_and_source_doc(doc2, source_mode=source_mode)
             try:
-                # archive_path is None when there is no archive version
-                archive_path = (
-                    pair.source_doc.archive_path
-                    if archive_fallback
-                    and pair.source_doc.mime_type != "application/pdf"
-                    else None
+                merger.add_interleaved(
+                    _merge_source_path(pair1),
+                    _merge_source_path(pair2),
+                    reverse_second=(
+                        page_ordering_strategy
+                        == PageOrderingStrategyChoices.ALTERNATING_REVERSE_SECOND
+                    ),
                 )
-                merger.add(
-                    archive_path
-                    if archive_path is not None
-                    else pair.source_doc.source_path,
-                )
-                affected_docs.append(doc.id)
-                if handoff_asn is None and doc.archive_serial_number is not None:
-                    handoff_asn = doc.archive_serial_number
             except Exception as e:
                 logger.exception(
-                    f"Error merging document {doc.id}, it will not be included in the merge: {e}",
+                    f"Error merging documents with strategy '{page_ordering_strategy}': {e}",
                 )
+                return "OK"
+            affected_docs.extend([doc1.id, doc2.id])
+            for doc in (doc1, doc2):
+                if handoff_asn is None and doc.archive_serial_number is not None:
+                    handoff_asn = doc.archive_serial_number
+        else:
+            # use doc_ids to preserve order
+            for doc_id in doc_ids:
+                doc = docs_by_id.get(doc_id)
+                if doc is None:
+                    continue
+                pair = _resolve_root_and_source_doc(doc, source_mode=source_mode)
+                try:
+                    merger.add(_merge_source_path(pair))
+                    affected_docs.append(doc.id)
+                    if handoff_asn is None and doc.archive_serial_number is not None:
+                        handoff_asn = doc.archive_serial_number
+                except Exception as e:
+                    logger.exception(
+                        f"Error merging document {doc.id}, it will not be included in the merge: {e}",
+                    )
         if len(affected_docs) == 0:
             logger.warning("No documents were merged")
             return "OK"
