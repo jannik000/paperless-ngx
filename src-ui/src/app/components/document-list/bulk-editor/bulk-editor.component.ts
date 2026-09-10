@@ -1007,7 +1007,7 @@ export class BulkEditorComponent
         ) {
           args.page_ordering_strategy = mergeDialog.pageOrderingStrategy()
         }
-        mergeDialog.buttonsEnabled = false
+        mergeDialog.buttonsEnabled.set(false)
         this.executeDocumentAction(
           modal,
           this.documentService.mergeDocuments(mergeDialog.documentIDs(), args),
